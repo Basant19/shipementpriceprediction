@@ -4,8 +4,8 @@ import sys
 import os
 import pandas as pd
 from pandas import DataFrame
-from evidently.model_profile import Profile
-from evidently.model_profile.sections import DataDriftProfileSection
+from evidently.report import Report
+from evidently.metric_preset import DataDriftPreset
 from typing import Tuple, Union
 from src.exception import shippingException
 from src.entity.config_entity import DataValidationConfig
@@ -14,7 +14,7 @@ from src.entity.artifacts_entity import (
     DataValidationArtifacts,
 )
 
-
+                          
 class DataValidation:
     def __init__(
         self,
@@ -190,10 +190,9 @@ class DataValidation:
         except Exception as e:
             raise shippingException(e, sys) from e
         
-    def detect_dataset_drift(
-        self, reference: DataFrame, production: DataFrame, get_ratio: bool = False
-    ) -> Union[bool, float]:
 
+    
+    def detect_dataset_drift(self, reference: DataFrame, production: DataFrame, get_ratio: bool = False) -> Union[bool, float]:
         """
         Method Name :   detect_dataset_drift
 
@@ -202,26 +201,22 @@ class DataValidation:
         Output      :   Report in json format and drift status True or False 
         """
         try:
-            data_drift_profile = Profile(sections=[DataDriftProfileSection()])
-            data_drift_profile.calculate(reference, production)
+            report = Report(metrics=[DataDriftPreset()])
+            report.run(reference_data=reference, current_data=production)
 
-            # Getting data drift report in json format
-            report = data_drift_profile.json()
-            json_report = json.loads(report)
+            json_report = report.as_dict()
 
-            # Saving the json report in artifacts directory
             data_drift_file_path = self.data_validation_config.DATA_DRIFT_FILE_PATH
-            self.data_validation_config.UTILS.write_json_to_yaml_file(
-                json_report, data_drift_file_path
-            )
-            n_features = json_report["data_drift"]["data"]["metrics"]["n_features"]
-            n_drifted_features = json_report["data_drift"]["data"]["metrics"][
-                "n_drifted_features"
-            ]
+            self.data_validation_config.UTILS.write_json_to_yaml_file(json_report, data_drift_file_path)
+
+            n_features = json_report['metrics'][0]['result']['number_of_columns']
+            n_drifted_features = json_report['metrics'][0]['result']['number_of_drifted_columns']
+            dataset_drift = json_report['metrics'][0]['result']['dataset_drift']
+
             if get_ratio:
-                return n_drifted_features / n_features  # Calculating the drift ratio
+                return n_drifted_features / n_features
             else:
-                return json_report["data_drift"]["data"]["metrics"]["dataset_drift"]
+                return dataset_drift
 
         except Exception as e:
             raise shippingException(e, sys) from e

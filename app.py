@@ -6,11 +6,11 @@ from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from src.utils.main_utils import MainUtils
-
+from fastapi.responses import HTMLResponse
 from src.components.model_predictor import CostPredictor, shippingData
 from src.constant import APP_HOST, APP_PORT
 from src.pipeline.training_pipeline import TrainPipeline
-
+from fastapi.responses import JSONResponse
 
 app = FastAPI()
 
@@ -66,9 +66,12 @@ class DataForm:
         self.customerInformation = form.get("customerInformation")
         self.remoteLocation = form.get("remoteLocation")
 
+@app.get("/", response_class=HTMLResponse)
+async def read_form(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request, "context": ""})
 
 
-@app.get("/train")
+@app.get("/train",response_class=HTMLResponse)
 async def trainRouteClient():
     try:
         train_pipeline = TrainPipeline()
@@ -82,7 +85,7 @@ async def trainRouteClient():
 
 
 
-@app.get("/predict")
+@app.get("/predict",response_class=HTMLResponse)
 async def predictGetRouteClient(request: Request):
     try:
         
@@ -96,7 +99,7 @@ async def predictGetRouteClient(request: Request):
 
 
 
-@app.post("/predict")
+@app.post("/predict",response_class=HTMLResponse)
 async def predictRouteClient(request: Request):
     try:
 
@@ -131,7 +134,11 @@ async def predictRouteClient(request: Request):
 
 
     except Exception as e:
-        return {"status": False, "error": f"{e}"}
+        return templates.TemplateResponse(
+            "index.html",
+            {"request": request, "context": f"Error occurred: {str(e)}"},
+        )
+        
 
 
 if __name__ == "__main__":

@@ -134,11 +134,7 @@ class TrainPipeline:
             return model_evaluation_artifact
 
         except Exception as e:
-            raise shippingException(e, sys) from e
-
-
-    
-     # This method is used to start the model pusher
+            raise shippingException(e, sys) from e     # This method is used to start the model pusher
     def start_model_pusher(
         self,
         model_trainer_artifacts: ModelTrainerArtifacts,
